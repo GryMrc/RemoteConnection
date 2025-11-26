@@ -497,6 +497,52 @@
         }
 
         addSystemMessage('Remote client hazır. Server URL ve kullanıcı ID girerek bağlanabilirsiniz.');
+
+        document.getElementById('testNegotiateBtn').addEventListener('click', async () => {
+            const serverUrl = serverUrlInput.value.trim();
+            const skipNgrok = document.getElementById('skipNgrokWarning').checked;
+            const debugOutput = document.getElementById('debugOutput');
+
+            if (!serverUrl) {
+                alert('Server URL gerekli!');
+                return;
+            }
+
+            debugOutput.style.display = 'block';
+            debugOutput.textContent = 'Testing negotiation...\n';
+
+            const negotiateUrl = `${serverUrl}/negotiate?negotiateVersion=1&userId=${userIdInput.value}`;
+            debugOutput.textContent += `URL: ${negotiateUrl}\n`;
+
+            try {
+                const headers = skipNgrok ? { 'ngrok-skip-browser-warning': 'true' } : {};
+                debugOutput.textContent += `Headers: ${JSON.stringify(headers)}\n`;
+
+                const response = await fetch(negotiateUrl, {
+                    method: 'POST',
+                    headers: headers
+                });
+
+                debugOutput.textContent += `Status: ${response.status} ${response.statusText}\n`;
+
+                const text = await response.text();
+                debugOutput.textContent += `Response Preview (First 500 chars):\n${text.substring(0, 500)}\n`;
+
+                if (response.ok) {
+                    try {
+                        const json = JSON.parse(text);
+                        debugOutput.textContent += `\n✅ Valid JSON received.\nConnectionId: ${json.connectionId}\nAvailable Transports: ${json.availableTransports ? json.availableTransports.map(t => t.transport).join(', ') : 'All'}`;
+                    } catch (e) {
+                        debugOutput.textContent += `\n❌ Invalid JSON: ${e.message}`;
+                    }
+                } else {
+                    debugOutput.textContent += `\n❌ Request failed.`;
+                }
+
+            } catch (err) {
+                debugOutput.textContent += `\n❌ Network Error: ${err.message}`;
+            }
+        });
     </script>
 </body>
 

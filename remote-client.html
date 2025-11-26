@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignalR Chat - Remote Client</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 10px;
+        }
+
+        .section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            margin-top: 10px;
+        }
+
+        .status {
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .status.disconnected {
+            background: #fee;
+            color: #c33;
+            border: 2px solid #fcc;
+        }
+
+        .status.connected {
+            background: #efe;
+            color: #3c3;
+            border: 2px solid #cfc;
+        }
+
+        .messages {
+            height: 300px;
+            overflow-y: auto;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: white;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 15px;
+            border-radius: 10px;
+            max-width: 80%;
+            word-wrap: break-word;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.sent {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message.received {
+            background: white;
+            border: 2px solid #e0e0e0;
+            color: #333;
+        }
+
+        .message-meta {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .message-content {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .send-section {
+            display: flex;
+            gap: 10px;
+        }
+
+        .send-section input {
+            flex: 1;
+        }
+
+        .send-section button {
+            width: auto;
+            padding: 12px 30px;
+        }
+
+        .system-message {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            font-style: italic;
+            margin: 10px 0;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .info-box strong {
+            color: #1976d2;
+        }
+
+        .info-box code {
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #d32f2f;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 SignalR Chat - Remote Client</h1>
+            <p>Dışarıdan Bağlantı Test Client'ı</p>
+        </div>
+
+        <div class="content">
+            <div class="info-box">
+                <strong>📡 ngrok ile Bağlantı:</strong><br>
+                Server URL'i girin. Örnek: <code>https://your-url.ngrok-free.dev/chathub</code><br>
+                Mobil cihaz, sanal makina veya farklı network'ten bağlanabilirsiniz.
+            </div>
+
+            <div class="section">
+                <h3>🔌 Bağlantı Ayarları</h3>
+
+                <div id="status" class="status disconnected">
+                    🔴 Bağlantı Yok
+                </div>
+
+                <div class="input-group">
+                    <label for="serverUrl">Server URL (Hub Endpoint)</label>
+                    <input type="text" id="serverUrl" placeholder="https://xxx.ngrok-free.dev/chathub"
+                        value="https://hosea-septate-brainsickly.ngrok-free.dev/chathub" />
+                </div>
+
+                <div class="input-group">
+                    <label for="userId">Kullanıcı ID'niz</label>
+                    <input type="text" id="userId" placeholder="Örn: mobile-user-1" value="mobile-user-1" />
+                </div>
+
+                <div
+                    style="margin-bottom: 15px; background: #fff; padding: 10px; border-radius: 10px; border: 1px solid #e0e0e0;">
+                    <label style="display: flex; align-items: center; margin-bottom: 10px; cursor: pointer;">
+                        <input type="checkbox" id="skipNgrokWarning" checked style="width: auto; margin-right: 10px;">
+                        <span style="font-size: 14px; color: #333;">ngrok uyarısını geç (Header ekle)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="forceLongPolling" style="width: auto; margin-right: 10px;">
+                        <span style="font-size: 14px; color: #333;">Sadece LongPolling kullan (WebSocket
+                            sorunluysa)</span>
+                    </label>
+                </div>
+
+                <button id="connectBtn" class="btn btn-primary">🔗 Bağlan</button>
+                <button id="disconnectBtn" class="btn btn-danger" style="display: none;">
+                    ❌ Bağlantıyı Kes
+                </button>
+            </div>
+
+            <div id="chatSection" style="display: none;">
+                <div class="section">
+                    <h3>💬 Mesajlaşma</h3>
+
+                    <div class="input-group">
+                        <label for="receiverId">Mesaj Göndereceğiniz Kullanıcı ID</label>
+                        <input type="text" id="receiverId" placeholder="Örn: user2" value="user2" />
+                    </div>
+
+                    <div id="messages" class="messages"></div>
+
+                    <div class="send-section">
+                        <input type="text" id="messageInput" placeholder="Mesajınızı yazın..." />
+                        <button id="sendBtn" class="btn btn-primary">Gönder</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let connection = null;
+        let currentUserId = null;
+
+        const statusDiv = document.getElementById('status');
+        const serverUrlInput = document.getElementById('serverUrl');
+        const userIdInput = document.getElementById('userId');
+        const receiverIdInput = document.getElementById('receiverId');
+        const messageInput = document.getElementById('messageInput');
+        const messagesDiv = document.getElementById('messages');
+        const chatSection = document.getElementById('chatSection');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const sendBtn = document.getElementById('sendBtn');
+
+        connectBtn.addEventListener('click', async () => {
+            const serverUrl = serverUrlInput.value.trim();
+            const userId = userIdInput.value.trim();
+            const skipNgrok = document.getElementById('skipNgrokWarning').checked;
+            const useLongPolling = document.getElementById('forceLongPolling').checked;
+
+            if (!serverUrl || !userId) {
+                alert('Lütfen server URL ve kullanıcı ID giriniz!');
+                return;
+            }
+
+            try {
+                currentUserId = userId;
+                addSystemMessage('Bağlantı başlatılıyor...');
+
+                // Connection Builder configuration
+                let builder = new signalR.HubConnectionBuilder()
+                    .withUrl(`${serverUrl}?userId=${userId}`, {
+                        // Transport configuration
+                        transport: useLongPolling
+                            ? signalR.HttpTransportType.LongPolling
+                            : undefined,
+
+                        // Headers configuration
+                        headers: skipNgrok
+                            ? { "ngrok-skip-browser-warning": "true" }
+                            : {}
+                    })
+                    .withAutomaticReconnect();
+
+                connection = builder.build();
+
+                registerHandlers();
+
+                await connection.start();
+
+                updateStatus(true);
+                addSystemMessage('✅ Bağlantı başarılı!');
+                chatSection.style.display = 'block';
+                connectBtn.style.display = 'none';
+                disconnectBtn.style.display = 'block';
+                serverUrlInput.disabled = true;
+                userIdInput.disabled = true;
+
+            } catch (err) {
+                console.error('Connection error:', err);
+                addSystemMessage(`❌ Bağlantı hatası: ${err.message}`);
+                alert('Bağlantı hatası: ' + err.message);
+                updateStatus(false);
+            }
+        });
+
+        disconnectBtn.addEventListener('click', async () => {
+            if (connection) {
+                await connection.stop();
+                updateStatus(false);
+                chatSection.style.display = 'none';
+                connectBtn.style.display = 'block';
+                disconnectBtn.style.display = 'none';
+                serverUrlInput.disabled = false;
+                userIdInput.disabled = false;
+                messagesDiv.innerHTML = '';
+                addSystemMessage('Bağlantı kesildi');
+            }
+        });
+
+        sendBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        async function sendMessage() {
+            const receiverId = receiverIdInput.value.trim();
+            const message = messageInput.value.trim();
+
+            if (!receiverId) {
+                alert('Lütfen alıcı kullanıcı ID giriniz!');
+                return;
+            }
+
+            if (!message) {
+                alert('Lütfen mesaj giriniz!');
+                return;
+            }
+
+            try {
+                await connection.invoke("SendMessageToUser", receiverId, message);
+                addMessage(message, 'sent', currentUserId, new Date().toISOString());
+                messageInput.value = '';
+            } catch (err) {
+                console.error('Send error:', err);
+                addSystemMessage(`❌ Mesaj gönderme hatası: ${err.message}`);
+            }
+        }
+
+        function registerHandlers() {
+            connection.on('ReceiveMessage', (message) => {
+                console.log('Message received:', message);
+                addMessage(message.content, 'received', message.senderId, message.timestamp);
+                addSystemMessage(`📨 ${message.senderId} adresinden mesaj alındı`);
+            });
+
+            connection.on('MessageSent', (message) => {
+                console.log('Message sent:', message);
+                addSystemMessage(`✅ Mesaj gönderildi (ID: ${message.messageId})`);
+            });
+
+            connection.on('Connected', (data) => {
+                console.log('Connected:', data);
+                addSystemMessage(`🟢 Bağlantı onayı: ${JSON.stringify(data)}`);
+            });
+
+            connection.onclose((error) => {
+                if (error) {
+                    console.error('Connection closed:', error);
+                    addSystemMessage(`❌ Bağlantı kesildi: ${error.message}`);
+                } else {
+                    addSystemMessage('ℹ️ Bağlantı kapatıldı');
+                }
+                updateStatus(false);
+            });
+
+            connection.onreconnecting((error) => {
+                console.log('Reconnecting...', error);
+                addSystemMessage('🔄 Yeniden bağlanılıyor...');
+            });
+
+            connection.onreconnected((connectionId) => {
+                console.log('Reconnected:', connectionId);
+                addSystemMessage(`✅ Yeniden bağlandı (ID: ${connectionId})`);
+                updateStatus(true);
+            });
+        }
+
+        function addMessage(content, type, sender, timestamp) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            const time = new Date(timestamp).toLocaleTimeString('tr-TR');
+            messageDiv.innerHTML = `
+                <div class="message-content">${escapeHtml(content)}</div>
+                <div class="message-meta">${sender} • ${time}</div>
+            `;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function addSystemMessage(text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'system-message';
+            const time = new Date().toLocaleTimeString('tr-TR');
+            messageDiv.textContent = `[${time}] ${text}`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function updateStatus(connected) {
+            if (connected) {
+                statusDiv.textContent = `🟢 Bağlı (${currentUserId})`;
+                statusDiv.className = 'status connected';
+            } else {
+                statusDiv.textContent = '🔴 Bağlantı Yok';
+                statusDiv.className = 'status disconnected';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        addSystemMessage('Remote client hazır. Server URL ve kullanıcı ID girerek bağlanabilirsiniz.');
+    </script>
+</body>
+
+</html>
